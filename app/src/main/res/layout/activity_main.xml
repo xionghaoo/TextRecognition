@@ -1,21 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:gravity="center"
+    android:orientation="vertical"
     tools:context=".MainActivity">
 
-    <FrameLayout
-        android:id="@+id/fragment_container"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+    <Button
+        android:id="@+id/btn_camera_recognition"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="摄像头识别"/>
 
-    <TextView
-        android:id="@+id/iv_image"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:textColor="@color/white"
-        android:gravity="center"/>
+    <Button
+        android:id="@+id/btn_image_recognition"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="图片识别"
+        android:layout_marginTop="40dp"/>
 
-</FrameLayout>
+</LinearLayout>

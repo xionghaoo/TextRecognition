@@ -29,6 +29,7 @@ import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
@@ -65,7 +66,8 @@ abstract class CameraXFragment<VIEW: ViewBinding> : Fragment() {
     private var listener: OnFragmentActionListener? = null
 
     // 图像分析
-    private val tess = TessBaseAPI()
+    private var tess = TessBaseAPI()
+    private var isStopAnalysis = false
 
     override fun onAttach(context: Context) {
         super.onAttach(context)
@@ -77,9 +79,26 @@ abstract class CameraXFragment<VIEW: ViewBinding> : Fragment() {
     }
 
     override fun onDetach() {
-        super.onDetach()
         listener = null
+        super.onDetach()
+    }
+
+    override fun onDestroy() {
+
+        isStopAnalysis = true
         tess.recycle()
+
+        // Terminate all outstanding analyzing jobs (if there is any).
+        cameraExecutor.apply {
+            shutdown()
+            awaitTermination(1000, TimeUnit.MILLISECONDS)
+        }
+
+        // Release TFLite resources.
+//        tflite.close()
+//        nnApiDelegate.close()
+
+        super.onDestroy()
     }
 
     override fun onCreateView(
@@ -288,6 +307,10 @@ abstract class CameraXFragment<VIEW: ViewBinding> : Fragment() {
                     if (!::bitmapBuffer.isInitialized) {
                         imageRotationDegrees = image.imageInfo.rotationDegrees
                         bitmapBuffer = Bitmap.createBitmap(image.width, image.height, Bitmap.Config.ARGB_8888)
+                    }
+
+                    if (isStopAnalysis) {
+                        image.close()
                     }
 
                     // image width: 640, height: 480, rotation: 90

@@ -40,4 +40,9 @@ class ImageTestActivity : AppCompatActivity() {
         }.start()
 
     }
+
+    override fun onDestroy() {
+        tess.recycle()
+        super.onDestroy()
+    }
 }
