@@ -39,7 +39,8 @@ class ImageDetector {
         // hsv空间颜色过滤
         Imgproc.cvtColor(srcMat, hsvMat, Imgproc.COLOR_BGR2HSV)
         val binaryMat = Mat()
-        Core.inRange(hsvMat, Scalar(50.0, 100.0, 100.0), Scalar(80.0, 255.0, 255.0), binaryMat)
+        // 行程码绿色值过滤
+        Core.inRange(hsvMat, Scalar(40.0, 100.0, 100.0), Scalar(80.0, 255.0, 255.0), binaryMat)
 
         // 寻找轮廓
         val hierarchy = Mat()
