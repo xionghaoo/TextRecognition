@@ -11,7 +11,7 @@ import java.io.IOException
 import kotlin.math.roundToInt
 
 
-class ImageDetector(private val context: Context) {
+class ImageDetector {
 
     private lateinit var contours: List<MatOfPoint>
 

@@ -17,7 +17,7 @@ class ImageTestActivity : AppCompatActivity() {
     // 图像分析
     private val tess = TessBaseAPI()
 
-    private val imageDetector = ImageDetector(this)
+    private val imageDetector = ImageDetector()
 
     private lateinit var binding: ActivityImageTestBinding
 

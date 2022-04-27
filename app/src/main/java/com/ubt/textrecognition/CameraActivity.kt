@@ -2,6 +2,7 @@ package com.ubt.textrecognition
 
 import android.content.Context
 import android.content.res.Configuration
+import android.graphics.Bitmap
 import android.graphics.ImageFormat
 import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraManager
@@ -77,9 +78,10 @@ class CameraActivity : AppCompatActivity(), CameraXFragment.OnFragmentActionList
         }
     }
 
-    override fun showAnalysisResult(result: String) {
+    override fun showAnalysisResult(result: Bitmap) {
         runOnUiThread {
-            binding.ivImage.text = result
+//            binding.ivImage.text = result
+            binding.ivImage.setImageBitmap(result)
         }
     }
 }

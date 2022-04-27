@@ -68,6 +68,7 @@ abstract class CameraXFragment<VIEW: ViewBinding> : Fragment() {
     // 图像分析
     private var tess = TessBaseAPI()
     private var isStopAnalysis = false
+    private val imageDetector: ImageDetector = ImageDetector()
 
     override fun onAttach(context: Context) {
         super.onAttach(context)
@@ -322,11 +323,13 @@ abstract class CameraXFragment<VIEW: ViewBinding> : Fragment() {
                     matrix.postRotate(90f)
                     val bitmap = Bitmap.createBitmap(bitmapBuffer, 0, 0, bitmapBuffer.width, bitmapBuffer.height, matrix, true)
 
-                    tess.setImage(bitmap)
-                    val text: String = tess.utF8Text
-                    listener?.showAnalysisResult(text)
+                    val result = imageDetector.detect(bitmap)
+                    if (result != null) listener?.showAnalysisResult(result)
+//                    tess.setImage(bitmap)
+//                    val text: String = tess.utF8Text
+//                    listener?.showAnalysisResult(text)
 
-                    Timber.d("识别到文字: $text, regions: ${tess.regions.boxRects.size}")
+//                    Timber.d("识别到文字: $text, regions: ${tess.regions.boxRects.size}")
                 })
             }
 
@@ -535,7 +538,7 @@ abstract class CameraXFragment<VIEW: ViewBinding> : Fragment() {
     }
 
     interface OnFragmentActionListener {
-        fun showAnalysisResult(result: String)
+        fun showAnalysisResult(result: Bitmap)
     }
 
     companion object {
