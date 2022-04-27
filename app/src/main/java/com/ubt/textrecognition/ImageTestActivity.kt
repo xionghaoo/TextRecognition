@@ -8,6 +8,7 @@ import android.os.Environment
 import android.widget.ImageView
 import android.widget.TextView
 import com.googlecode.tesseract.android.TessBaseAPI
+import com.ubt.textrecognition.databinding.ActivityImageTestBinding
 import timber.log.Timber
 import java.io.File
 
@@ -16,9 +17,14 @@ class ImageTestActivity : AppCompatActivity() {
     // 图像分析
     private val tess = TessBaseAPI()
 
+    private val imageDetector = ImageDetector(this)
+
+    private lateinit var binding: ActivityImageTestBinding
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_image_test)
+        binding = ActivityImageTestBinding.inflate(layoutInflater)
+        setContentView(binding.root)
 
         // 文字模型路径/sdcard/tesseract/tessdata/
         val dataPath: String = File(Environment.getExternalStorageDirectory(), "tesseract").absolutePath
@@ -26,16 +32,17 @@ class ImageTestActivity : AppCompatActivity() {
             Timber.d("Tesseract引擎初始化成功")
         }
 
-        val iv = findViewById<ImageView>(R.id.iv_image)
-        val tv = findViewById<TextView>(R.id.tv_result)
-        iv.setImageResource(R.drawable.test)
+        val testImg = R.drawable.test2
+        binding.ivImage.setImageResource(testImg)
         Thread {
-            val bitmap = BitmapFactory.decodeResource(resources, R.drawable.test)
-            tess.setImage(bitmap)
-            val txt = tess.utF8Text
-            Timber.d("识别结果：${txt}")
+            val bitmap = BitmapFactory.decodeResource(resources, testImg)
+            val result = imageDetector.detect(bitmap)
+//            tess.setImage(bitmap)
+//            val txt = tess.utF8Text
+//            Timber.d("识别结果：${txt}")
             runOnUiThread {
-                tv.text = txt
+                binding.ivResult.setImageBitmap(result)
+//                tv.text = txt
             }
         }.start()
 
