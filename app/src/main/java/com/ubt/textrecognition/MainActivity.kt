@@ -7,7 +7,9 @@ import android.graphics.Bitmap
 import android.graphics.ImageFormat
 import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraManager
+import android.icu.util.Output
 import android.os.Bundle
+import android.os.Environment
 import android.view.Gravity
 import android.widget.FrameLayout
 import androidx.appcompat.app.AppCompatActivity
@@ -19,6 +21,9 @@ import timber.log.Timber
 import xh.zero.core.replaceFragment
 import xh.zero.core.startPlainActivity
 import xh.zero.core.utils.SystemUtil
+import xh.zero.core.utils.ToastUtil
+import java.io.*
+import java.lang.Exception
 
 class MainActivity : AppCompatActivity() {
 
@@ -45,14 +50,50 @@ class MainActivity : AppCompatActivity() {
     @AfterPermissionGranted(REQUEST_CODE_ALL_PERMISSION)
     private fun permissionTask() {
         if (hasPermission()) {
+            Thread {
+                // tesseract/tessdata/
+                val fileName = "chi_sim.traineddata"
+                val fis = assets.open(fileName)
+                val tesseract = File(Environment.getExternalStorageDirectory(), "tesseract")
+                if (!tesseract.exists()) {
+                    tesseract.mkdir()
+                }
+                val tessdata = File(tesseract, "tessdata")
+                if (!tessdata.exists()) {
+                    tessdata.mkdir()
+                }
+                val targetFile = File(tessdata, fileName)
+                if (!targetFile.exists()) {
+                    targetFile.createNewFile()
+                }
+                var fout: FileOutputStream? = null
+                try {
+                    fout = FileOutputStream(targetFile)
+                    val buffer = ByteArray(8 * 1024)
+                    var read = fis.read(buffer)
+                    while (read != -1) {
+                        fout.write(buffer, 0, read)
+                        read = fis.read(buffer)
+                    }
+                    fout.flush()
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                } finally {
+                    fout?.close()
+                }
+                runOnUiThread {
+                    binding.btnCameraRecognition.setOnClickListener {
+                        startPlainActivity(CameraActivity::class.java)
+                    }
 
-            binding.btnCameraRecognition.setOnClickListener {
-                startPlainActivity(CameraActivity::class.java)
-            }
+                    binding.btnImageRecognition.setOnClickListener {
+                        startPlainActivity(ImageTestActivity::class.java)
+                    }
+                }
+            }.start()
 
-            binding.btnImageRecognition.setOnClickListener {
-                startPlainActivity(ImageTestActivity::class.java)
-            }
+
+
 
         } else {
             EasyPermissions.requestPermissions(

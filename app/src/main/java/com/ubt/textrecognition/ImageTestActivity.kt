@@ -26,11 +26,11 @@ class ImageTestActivity : AppCompatActivity() {
             Timber.d("Tesseract引擎初始化成功")
         }
 
-        val bitmap = BitmapFactory.decodeResource(resources, R.drawable.test)
         val iv = findViewById<ImageView>(R.id.iv_image)
         val tv = findViewById<TextView>(R.id.tv_result)
-        iv.setImageBitmap(bitmap)
+        iv.setImageResource(R.drawable.test)
         Thread {
+            val bitmap = BitmapFactory.decodeResource(resources, R.drawable.test)
             tess.setImage(bitmap)
             val txt = tess.utF8Text
             Timber.d("识别结果：${txt}")
