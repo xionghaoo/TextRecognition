@@ -303,7 +303,7 @@ abstract class CameraXFragment<VIEW: ViewBinding> : Fragment() {
                     val text: String = tess.utF8Text
                     listener?.showAnalysisResult(text)
 
-                    Timber.d("识别到文字: $text")
+                    Timber.d("识别到文字: $text, regions: ${tess.regions.boxRects.size}")
                 })
             }
 
