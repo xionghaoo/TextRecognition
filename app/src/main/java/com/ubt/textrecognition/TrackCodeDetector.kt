@@ -2,6 +2,8 @@ package com.ubt.textrecognition
 
 import android.content.Context
 import android.graphics.*
+import android.util.Log
+import android.widget.Toast
 import com.ubt.textrecognition.widgets.IndicatorRectView
 import org.opencv.android.Utils
 import org.opencv.core.*
@@ -15,102 +17,103 @@ import kotlin.math.abs
 import kotlin.math.roundToInt
 
 
-class ImageDetector {
+class TrackCodeDetector(private val context: Context) {
+
+    companion object {
+        private const val OUTPUT_IMAGE_WIDTH = 720.0
+        private const val OUTPUT_IMAGE_HEIGHT = 1280.0
+    }
+
     private lateinit var srcMat: Mat
     private var resultBitmap: Bitmap? = null
     private lateinit var contours2f: MatOfPoint2f
     private lateinit var approxCurve: MatOfPoint2f
 
+    private val density = context.resources.displayMetrics.density
 
+    /**
+     * 行程码区域检测
+     * 检测到会返回行程文字区域的图片
+     */
     fun detect(image: Bitmap): Bitmap? {
         val srcWidth = image.width
         val srcHeight = image.height
         Timber.d("src size: ${srcWidth}, $srcHeight")
 
-//        val contour = cannyDetect(image) ?: return null
-
-        // TODO 还差左右上下方向透视矩形坐标
         val contour = findOuterArea(image) ?: return null
-        val rect = Imgproc.boundingRect(contour)
-        val ps = Array<Point>(4) { Point(0.0, 0.0) }
-        contour.toList()?.forEach { point ->
-            if (abs(point.y.toInt() - rect.y) < 3) {
-                ps[0] = point
-            }
-            if (abs(point.x - (rect.x + rect.width)) < 3) {
-                ps[2] = point
-            }
-
-            if (abs(point.x.toInt() - rect.x) < 3) {
-                ps[1] = point
-            }
-
-            if (abs(point.y - (rect.y + rect.height)) < 3) {
-                ps[3] = point
-            }
-        }
-
+        // 多边形拟合，寻找区域顶点
         contours2f = MatOfPoint2f(*contour.toArray())
-//        val rectf = Imgproc.minAreaRect(contours2f)
-//        val ps = Array<Point>(4) { Point(0.0, 0.0) }
-//        rectf.points(ps)
-//        Timber.d("最小矩形：${ps[0]}, ${ps[1]}, ${ps[2]}, ${ps[3]}")
+        // 近似精度的参数，值越小精度越高
+        var epsilon = 0.03 * Imgproc.arcLength(contours2f, true)
+        if (epsilon <= 5) {
+            epsilon = 5.0
+        }
+        Timber.d("epsilon: ${epsilon}")
+        approxCurve = MatOfPoint2f()
+        // 拟合后的顶点集合approxCurve
+        Imgproc.approxPolyDP(contours2f, approxCurve, epsilon, true)
 
-        // 靠左倾斜角度：82.56858825683594
-        // 靠右倾斜角度：2.1522600650787354
-//        Timber.d("角度：${rectf.angle}")
-
-        Timber.d("边界矩形：$rect")
+        Timber.d("顶点数：${approxCurve.rows()}")
+        // 过滤四个顶点的矩形
+        val num = approxCurve.rows()
+        if (num != 4) {
+            Timber.d("识别失败：顶点数：$num")
+            return null
+        }
 
         var p1 = Point(0.0, 0.0)
         var p2 = Point(0.0, 0.0)
         var p3 = Point(0.0, 0.0)
         var p4 = Point(0.0, 0.0)
+        approxCurve.toList().forEachIndexed { index, point ->
+            when(index) {
+                0 -> p1 = point
+                1 -> p3 = point
+                2 -> p4 = point
+                3 -> p2 = point
+            }
+            Timber.d("识别到的顶点：$point")
+        }
 
-        // 坐标点排序
-        ps.sortBy { p -> p.x }
-        if (ps[0].y < ps[1].y) {
-            p1 = ps[0]
-            p2 = ps[1]
-        } else {
-            p1 = ps[1]
-            p2 = ps[0]
-        }
-        if (ps[2].y < ps[3].y) {
-            p3 = ps[2]
-            p4 = ps[3]
-        } else {
-            p3 = ps[3]
-            p4 = ps[2]
-        }
         Timber.d("边界：${p1}, ${p2}, ${p3}, ${p4}")
 
+        // 透视变换矫正
         val srcPoints = ArrayList<Point>()
         srcPoints.add(p1)
-        srcPoints.add(p3)
         srcPoints.add(p2)
+        srcPoints.add(p3)
         srcPoints.add(p4)
 
+        val targetWidth = OUTPUT_IMAGE_WIDTH * density
+        val targetHeight = OUTPUT_IMAGE_HEIGHT * density
         val pts1 = Converters.vector_Point2f_to_Mat(srcPoints)
         val dstPoints = ArrayList<Point>()
         dstPoints.add(Point(0.0, 0.0))
-        dstPoints.add(Point(rect.width.toDouble(), 0.0))
-        dstPoints.add(Point(0.0, rect.height.toDouble()))
-        dstPoints.add(Point(rect.width.toDouble(), rect.height.toDouble()))
+        dstPoints.add(Point(targetWidth, 0.0))
+        dstPoints.add(Point(0.0, targetHeight))
+        dstPoints.add(Point(targetWidth, targetHeight))
         val pts2 = Converters.vector_Point2f_to_Mat(dstPoints)
         val transform = Imgproc.getPerspectiveTransform(pts1, pts2)
         val dstMat = Mat()
-        Imgproc.warpPerspective(srcMat, dstMat, transform, Size(rect.width.toDouble(), rect.height.toDouble()), Imgproc.INTER_NEAREST)
+        Imgproc.warpPerspective(srcMat, dstMat, transform, Size(targetWidth, targetHeight), Imgproc.INTER_NEAREST)
 
         resultBitmap = matToBitmap(dstMat)
-
+        // 透视变换后处理，寻找裁剪区域
+        val cropRect = findCropRect(dstMat) ?: return null
         // 图片裁剪
-        val r = rect.height / 209.0
-        val newBitmap = Bitmap.createBitmap(resultBitmap!!, 0, (r * 110).roundToInt(), rect.width, (r * 42).roundToInt())
-
-        return newBitmap
+        val result = Bitmap.createBitmap(
+            resultBitmap!!,
+            cropRect.x,
+            cropRect.y + cropRect.height / 2,
+            cropRect.width,
+            cropRect.height / 2
+        )
+        return result
     }
 
+    /**
+     * 寻找外围轮廓
+     */
     private fun findOuterArea(image: Bitmap): MatOfPoint? {
         srcMat = Mat()
         val hsvMat = Mat()
@@ -143,28 +146,41 @@ class ImageDetector {
             Imgproc.contourArea(contour) > 2500
         }
         Timber.d("过滤后的轮廓：${cs.size}")
-//        resultBitmap = matToBitmap(binaryMat)
-//        val canvas = Canvas(resultBitmap!!)
-//        cs.forEachIndexed { index, matOfPoint ->
-//            val rect = Imgproc.boundingRect(matOfPoint)
-//            Timber.d("轮廓$index: ${rect.width}, ${rect.height}, (${rect.x}, ${rect.y})")
-//
-//            val left = rect.x
-//            val top = rect.y
-//            val bottom = top + rect.height
-//            val right = left + rect.width
-//            val r = android.graphics.Rect(left, top, right, bottom)
-//
-//            val rectPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-//                strokeWidth = 2f
-//                style = Paint.Style.STROKE
-//                color = Color.argb(255, 255, 0, 0)
-//            }
-//            canvas.drawRect(r, rectPaint)
-//        }
-
-
         return cs.maxByOrNull { Imgproc.boundingRect(it).area() }
+    }
+
+    /**
+     * 寻找轮廓中的裁剪区域
+     */
+    private fun findCropRect(transformMat: Mat): Rect? {
+        val transformImage = matToBitmap(transformMat)
+        val tranSrcMat = Mat()
+        try {
+            Utils.bitmapToMat(transformImage, tranSrcMat)
+        } catch (e: IOException) {
+            e.printStackTrace()
+        }
+        val tranGreyMat = Mat()
+        Imgproc.cvtColor(tranSrcMat, tranGreyMat, Imgproc.COLOR_BGR2GRAY)
+        val tranBinaryMat = Mat()
+        Imgproc.threshold(tranGreyMat, tranBinaryMat, 180.0, 255.0, Imgproc.THRESH_BINARY)
+
+        val tranHierarchy = Mat()
+        val tranContours = ArrayList<MatOfPoint>()
+        Imgproc.findContours(
+            tranBinaryMat,
+            tranContours,
+            tranHierarchy,
+            Imgproc.RETR_EXTERNAL,
+            Imgproc.CHAIN_APPROX_SIMPLE
+        )
+
+        val filtedContours = tranContours.filter { contour ->
+            Imgproc.contourArea(contour) > 2500
+        }
+        val maxContour = filtedContours.maxByOrNull { Imgproc.contourArea(it) } ?: return null
+        val rect = Imgproc.boundingRect(maxContour)
+        return rect
     }
 
 
@@ -200,26 +216,6 @@ class ImageDetector {
             Imgproc.contourArea(contour) > 2500
         }
         Timber.d("过滤后的轮廓：${cs.size}")
-//        resultBitmap = matToBitmap(result)
-//        val canvas = Canvas(resultBitmap!!)
-//        cs.forEachIndexed { index, matOfPoint ->
-//            val rect = Imgproc.boundingRect(matOfPoint)
-//            Timber.d("轮廓$index: ${rect.width}, ${rect.height}, (${rect.x}, ${rect.y})")
-//
-//            val left = rect.x
-//            val top = rect.y
-//            val bottom = top + rect.height
-//            val right = left + rect.width
-//            val r = android.graphics.Rect(left, top, right, bottom)
-//
-//            val rectPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-//                strokeWidth = 2f
-//                style = Paint.Style.STROKE
-//                color = Color.argb(255, 255, 0, 0)
-//            }
-//            canvas.drawRect(r, rectPaint)
-//        }
-
         return cs.maxByOrNull { Imgproc.boundingRect(it).area() }
     }
 
@@ -303,5 +299,27 @@ class ImageDetector {
         val tmp = Bitmap.createBitmap(mat.width(), mat.height(), Bitmap.Config.ARGB_8888)
         Utils.matToBitmap(mat, tmp)
         return tmp
+    }
+
+    private fun drawContours(mat: Mat, contours: List<MatOfPoint>) {
+        val bitmap = matToBitmap(mat)
+        val canvas = Canvas(bitmap)
+        contours.forEachIndexed { index, matOfPoint ->
+            val rect = Imgproc.boundingRect(matOfPoint)
+            Timber.d("轮廓$index: ${rect.width}, ${rect.height}, (${rect.x}, ${rect.y})")
+
+            val left = rect.x
+            val top = rect.y
+            val bottom = top + rect.height
+            val right = left + rect.width
+            val r = android.graphics.Rect(left, top, right, bottom)
+
+            val rectPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                strokeWidth = 2f
+                style = Paint.Style.STROKE
+                color = Color.argb(255, 255, 0, 0)
+            }
+            canvas.drawRect(r, rectPaint)
+        }
     }
 }

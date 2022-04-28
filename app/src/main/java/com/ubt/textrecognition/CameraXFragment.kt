@@ -69,7 +69,9 @@ abstract class CameraXFragment<VIEW: ViewBinding> : Fragment() {
     // 图像分析
     private var tess = TessBaseAPI()
     private var isStopAnalysis = false
-    private val imageDetector: ImageDetector = ImageDetector()
+    private val trackCodeDetector: TrackCodeDetector by lazy {
+        TrackCodeDetector(requireContext())
+    }
 
     override fun onAttach(context: Context) {
         super.onAttach(context)
@@ -327,13 +329,16 @@ abstract class CameraXFragment<VIEW: ViewBinding> : Fragment() {
                     val matrix = Matrix()
                     matrix.postRotate(90f)
                     val bitmap = Bitmap.createBitmap(bitmapBuffer, 0, 0, bitmapBuffer.width, bitmapBuffer.height, matrix, true)
-
-                    val result = imageDetector.detect(bitmap)
-                    if (result != null) {
-                        tess.setImage(result)
-                        val text: String = tess.utF8Text
-                        listener?.showAnalysisText(text)
-                        listener?.showAnalysisResult(result)
+                    try {
+                        val result = trackCodeDetector.detect(bitmap)
+                        if (result != null) {
+                            tess.setImage(result)
+                            val text: String = tess.utF8Text
+                            listener?.showAnalysisText(text)
+                            listener?.showAnalysisResult(result)
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
                     }
 
 //                    Timber.d("识别到文字: $text, regions: ${tess.regions.boxRects.size}")
