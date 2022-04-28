@@ -16,6 +16,7 @@ import com.ubt.textrecognition.databinding.ActivityMainBinding
 import timber.log.Timber
 import xh.zero.core.replaceFragment
 import xh.zero.core.utils.SystemUtil
+import xh.zero.core.utils.ToastUtil
 
 class CameraActivity : AppCompatActivity(), CameraXFragment.OnFragmentActionListener {
 
@@ -72,6 +73,12 @@ class CameraActivity : AppCompatActivity(), CameraXFragment.OnFragmentActionList
 
                         val cameraOrientation = characteristic.get(CameraCharacteristics.SENSOR_ORIENTATION)
                         Timber.d("摄像头角度：$cameraOrientation")
+
+                        characteristic.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)
+                            ?.getOutputSizes(ImageFormat.JPEG)
+                            ?.forEach { size ->
+                                Timber.d("可用的相机尺寸： $size")
+                            }
                     }
                 }
             }
@@ -87,6 +94,10 @@ class CameraActivity : AppCompatActivity(), CameraXFragment.OnFragmentActionList
 
     override fun showAnalysisText(txt: String) {
         runOnUiThread {
+            if (txt.contains("*")) {
+                Timber.d("发现星号")
+                ToastUtil.show(this, "发现星号")
+            }
             binding.tvResult.text = txt
         }
     }

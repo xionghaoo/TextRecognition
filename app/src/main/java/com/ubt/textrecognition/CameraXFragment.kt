@@ -296,11 +296,13 @@ abstract class CameraXFragment<VIEW: ViewBinding> : Fragment() {
         // ImageAnalysis 用例
         imageAnalyzer = ImageAnalysis.Builder()
             // We request aspect ratio but no resolution
-            .setTargetAspectRatio(screenAspectRatio)
+                // 不能和setTargetResolution一起使用
+//            .setTargetAspectRatio(screenAspectRatio)
             // Set initial target rotation, we will have to call this again if rotation changes
             // during the lifecycle of this use case
             .setTargetRotation(rotation)
-//            .setTargetResolution(Size(1280, 960))
+                // 大分辨率
+            .setTargetResolution(Size(960, 1280))
             .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
             .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888)
             .build()
@@ -317,7 +319,8 @@ abstract class CameraXFragment<VIEW: ViewBinding> : Fragment() {
                     }
 
                     // image width: 640, height: 480, rotation: 90
-//                    Timber.d("ImageAnalysis: image width: ${image.width}, height: ${image.height}, rotation: ${image.imageInfo.rotationDegrees}")
+                    // image width: 480, height: 640, rotation: 90
+                    Timber.d("ImageAnalysis: image width: ${image.width}, height: ${image.height}, rotation: ${image.imageInfo.rotationDegrees}")
 
                     image.use { bitmapBuffer.copyPixelsFromBuffer(image.planes[0].buffer) }
                     // 拿到的图片是逆时针转了90度的图，这里修正它
