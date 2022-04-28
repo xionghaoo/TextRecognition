@@ -29,6 +29,7 @@ class ImageDetector {
 
 //        val contour = cannyDetect(image) ?: return null
 
+        // TODO 还差左右上下方向透视矩形坐标
         val contour = findOuterArea(image) ?: return null
         val rect = Imgproc.boundingRect(contour)
         val ps = Array<Point>(4) { Point(0.0, 0.0) }
@@ -105,11 +106,8 @@ class ImageDetector {
 
         // 图片裁剪
         val r = rect.height / 209.0
-        val newBitmap = Bitmap.createBitmap(resultBitmap!!, 0, (r * 130).roundToInt(), rect.width, (r * 21).roundToInt())
+        val newBitmap = Bitmap.createBitmap(resultBitmap!!, 0, (r * 110).roundToInt(), rect.width, (r * 42).roundToInt())
 
-//        findInnerArea(image, outerRect)
-        // TODO 1. 找到内部最大轮廓的顶点
-        // TODO 2. 透视变换
         return newBitmap
     }
 
