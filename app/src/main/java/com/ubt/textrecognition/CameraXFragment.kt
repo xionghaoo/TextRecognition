@@ -299,12 +299,12 @@ abstract class CameraXFragment<VIEW: ViewBinding> : Fragment() {
         imageAnalyzer = ImageAnalysis.Builder()
             // We request aspect ratio but no resolution
                 // 不能和setTargetResolution一起使用
-            .setTargetAspectRatio(screenAspectRatio)
+//            .setTargetAspectRatio(screenAspectRatio)
             // Set initial target rotation, we will have to call this again if rotation changes
             // during the lifecycle of this use case
             .setTargetRotation(rotation)
                 // 大分辨率
-//            .setTargetResolution(Size(960, 1280))
+            .setTargetResolution(Size(960, 1280))
             .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
             .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888)
             .build()
