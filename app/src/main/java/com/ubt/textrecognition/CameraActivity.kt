@@ -84,4 +84,10 @@ class CameraActivity : AppCompatActivity(), CameraXFragment.OnFragmentActionList
             binding.ivImage.setImageBitmap(result)
         }
     }
+
+    override fun showAnalysisText(txt: String) {
+        runOnUiThread {
+            binding.tvResult.text = txt
+        }
+    }
 }

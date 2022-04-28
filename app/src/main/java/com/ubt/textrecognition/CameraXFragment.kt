@@ -10,6 +10,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.util.Log
+import android.util.Size
 import android.view.*
 import android.webkit.MimeTypeMap
 import android.widget.Toast
@@ -299,6 +300,7 @@ abstract class CameraXFragment<VIEW: ViewBinding> : Fragment() {
             // Set initial target rotation, we will have to call this again if rotation changes
             // during the lifecycle of this use case
             .setTargetRotation(rotation)
+//            .setTargetResolution(Size(1280, 960))
             .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
             .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888)
             .build()
@@ -324,10 +326,12 @@ abstract class CameraXFragment<VIEW: ViewBinding> : Fragment() {
                     val bitmap = Bitmap.createBitmap(bitmapBuffer, 0, 0, bitmapBuffer.width, bitmapBuffer.height, matrix, true)
 
                     val result = imageDetector.detect(bitmap)
-                    if (result != null) listener?.showAnalysisResult(result)
-//                    tess.setImage(bitmap)
-//                    val text: String = tess.utF8Text
-//                    listener?.showAnalysisResult(text)
+                    if (result != null) {
+                        tess.setImage(result)
+                        val text: String = tess.utF8Text
+                        listener?.showAnalysisText(text)
+                        listener?.showAnalysisResult(result)
+                    }
 
 //                    Timber.d("识别到文字: $text, regions: ${tess.regions.boxRects.size}")
                 })
@@ -539,6 +543,7 @@ abstract class CameraXFragment<VIEW: ViewBinding> : Fragment() {
 
     interface OnFragmentActionListener {
         fun showAnalysisResult(result: Bitmap)
+        fun showAnalysisText(txt: String)
     }
 
     companion object {

@@ -17,4 +17,12 @@
         android:layout_height="320dp"
         android:scaleType="fitCenter"
         android:layout_gravity="bottom|start"/>
+
+    <TextView
+        android:id="@+id/tv_result"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:textSize="20sp"
+        android:gravity="center"
+        android:textColor="@color/white"/>
 </FrameLayout>
