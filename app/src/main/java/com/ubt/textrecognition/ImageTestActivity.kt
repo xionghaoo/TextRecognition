@@ -9,6 +9,7 @@ import com.ubt.textrecognition.databinding.ActivityImageTestBinding
 import timber.log.Timber
 import xh.zero.core.utils.SystemUtil
 import java.io.File
+import java.lang.Exception
 
 class ImageTestActivity : AppCompatActivity() {
 
@@ -57,14 +58,18 @@ class ImageTestActivity : AppCompatActivity() {
         binding.ivImage.setImageResource(img)
 
         Thread {
-            val bitmap = BitmapFactory.decodeResource(resources, img)
-            val result = imageDetector.detect(bitmap)
-            tess.setImage(result)
-            val txt = tess.utF8Text
-            Timber.d("识别结果：${txt}")
-            runOnUiThread {
-                binding.ivResult.setImageBitmap(result)
-                binding.tvResult.text = txt
+            try {
+                val bitmap = BitmapFactory.decodeResource(resources, img)
+                val result = imageDetector.detect(bitmap)
+                tess.setImage(result)
+                val txt = tess.utF8Text
+                Timber.d("识别结果：${txt}")
+                runOnUiThread {
+                    binding.ivResult.setImageBitmap(result)
+                    binding.tvResult.text = txt
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
         }.start()
     }

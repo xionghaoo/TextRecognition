@@ -20,8 +20,8 @@ import kotlin.math.roundToInt
 class TrackCodeDetector(private val context: Context) {
 
     companion object {
-        private const val OUTPUT_IMAGE_WIDTH = 720.0
-        private const val OUTPUT_IMAGE_HEIGHT = 1280.0
+        private const val OUTPUT_IMAGE_WIDTH = 360.0
+        private const val OUTPUT_IMAGE_HEIGHT = 640.0
     }
 
     private lateinit var srcMat: Mat
@@ -65,23 +65,29 @@ class TrackCodeDetector(private val context: Context) {
         var p2 = Point(0.0, 0.0)
         var p3 = Point(0.0, 0.0)
         var p4 = Point(0.0, 0.0)
-        approxCurve.toList().forEachIndexed { index, point ->
-            when(index) {
-                0 -> p1 = point
-                1 -> p3 = point
-                2 -> p4 = point
-                3 -> p2 = point
-            }
-            Timber.d("识别到的顶点：$point")
+        val ps = approxCurve.toList()
+        ps.sortBy { p -> p.x }
+        if (ps[0].y < ps[1].y) {
+            p1 = ps[0]
+            p2 = ps[1]
+        } else {
+            p1 = ps[1]
+            p2 = ps[0]
         }
-
+        if (ps[2].y < ps[3].y) {
+            p3 = ps[2]
+            p4 = ps[3]
+        } else {
+            p3 = ps[3]
+            p4 = ps[2]
+        }
         Timber.d("边界：${p1}, ${p2}, ${p3}, ${p4}")
 
         // 透视变换矫正
         val srcPoints = ArrayList<Point>()
         srcPoints.add(p1)
-        srcPoints.add(p2)
         srcPoints.add(p3)
+        srcPoints.add(p2)
         srcPoints.add(p4)
 
         val targetWidth = OUTPUT_IMAGE_WIDTH * density
@@ -146,6 +152,8 @@ class TrackCodeDetector(private val context: Context) {
             Imgproc.contourArea(contour) > 2500
         }
         Timber.d("过滤后的轮廓：${cs.size}")
+//        resultBitmap = matToBitmap(binaryMat)
+//        drawContours(binaryMat, cs)
         return cs.maxByOrNull { Imgproc.boundingRect(it).area() }
     }
 

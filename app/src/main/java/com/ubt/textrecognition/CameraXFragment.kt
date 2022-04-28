@@ -24,6 +24,9 @@ import androidx.fragment.app.Fragment
 import androidx.viewbinding.ViewBinding
 import androidx.window.WindowManager
 import com.googlecode.tesseract.android.TessBaseAPI
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import timber.log.Timber
 import java.io.File
 import java.text.SimpleDateFormat
@@ -89,20 +92,17 @@ abstract class CameraXFragment<VIEW: ViewBinding> : Fragment() {
 
     override fun onDestroy() {
 
-        isStopAnalysis = true
         tess.recycle()
+        isStopAnalysis = true
+        super.onDestroy()
+    }
 
+    private fun stopAnalysis() {
         // Terminate all outstanding analyzing jobs (if there is any).
         cameraExecutor.apply {
             shutdown()
             awaitTermination(1000, TimeUnit.MILLISECONDS)
         }
-
-        // Release TFLite resources.
-//        tflite.close()
-//        nnApiDelegate.close()
-
-        super.onDestroy()
     }
 
     override fun onCreateView(
@@ -299,12 +299,12 @@ abstract class CameraXFragment<VIEW: ViewBinding> : Fragment() {
         imageAnalyzer = ImageAnalysis.Builder()
             // We request aspect ratio but no resolution
                 // 不能和setTargetResolution一起使用
-//            .setTargetAspectRatio(screenAspectRatio)
+            .setTargetAspectRatio(screenAspectRatio)
             // Set initial target rotation, we will have to call this again if rotation changes
             // during the lifecycle of this use case
             .setTargetRotation(rotation)
                 // 大分辨率
-            .setTargetResolution(Size(960, 1280))
+//            .setTargetResolution(Size(960, 1280))
             .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
             .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888)
             .build()
@@ -316,23 +316,31 @@ abstract class CameraXFragment<VIEW: ViewBinding> : Fragment() {
                         bitmapBuffer = Bitmap.createBitmap(image.width, image.height, Bitmap.Config.ARGB_8888)
                     }
 
-                    if (isStopAnalysis) {
-                        image.close()
-                    }
-
+//                    if (isStopAnalysis) {
+//                        image.close()
+//                    }
                     // image width: 640, height: 480, rotation: 90
                     // image width: 480, height: 640, rotation: 90
-                    Timber.d("ImageAnalysis: image width: ${image.width}, height: ${image.height}, rotation: ${image.imageInfo.rotationDegrees}")
+//                    Timber.d("ImageAnalysis: image width: ${image.width}, height: ${image.height}, rotation: ${image.imageInfo.rotationDegrees}")
 
                     image.use { bitmapBuffer.copyPixelsFromBuffer(image.planes[0].buffer) }
                     // 拿到的图片是逆时针转了90度的图，这里修正它
                     val matrix = Matrix()
                     matrix.postRotate(90f)
                     val bitmap = Bitmap.createBitmap(bitmapBuffer, 0, 0, bitmapBuffer.width, bitmapBuffer.height, matrix, true)
+                    // 监听线程关闭的消息
+                    if (isStopAnalysis) {
+                        stopAnalysis()
+                        return@Analyzer
+                    }
                     try {
                         val result = trackCodeDetector.detect(bitmap)
                         if (result != null) {
                             tess.setImage(result)
+                            // 上面是一个耗时方法，不能直接把线程关掉，等他处理完再关掉
+                            if (isStopAnalysis) {
+                                stopAnalysis()
+                            }
                             val text: String = tess.utF8Text
                             listener?.showAnalysisText(text)
                             listener?.showAnalysisResult(result)
@@ -340,8 +348,6 @@ abstract class CameraXFragment<VIEW: ViewBinding> : Fragment() {
                     } catch (e: Exception) {
                         e.printStackTrace()
                     }
-
-//                    Timber.d("识别到文字: $text, regions: ${tess.regions.boxRects.size}")
                 })
             }
 
