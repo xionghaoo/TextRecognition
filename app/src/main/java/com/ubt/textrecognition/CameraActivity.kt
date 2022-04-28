@@ -12,7 +12,6 @@ import android.view.Gravity
 import android.widget.FrameLayout
 import androidx.window.WindowManager
 import com.ubt.textrecognition.databinding.ActivityCameraBinding
-import com.ubt.textrecognition.databinding.ActivityMainBinding
 import timber.log.Timber
 import xh.zero.core.replaceFragment
 import xh.zero.core.utils.SystemUtil
@@ -85,9 +84,8 @@ class CameraActivity : AppCompatActivity(), CameraXFragment.OnFragmentActionList
         }
     }
 
-    override fun showAnalysisResult(result: Bitmap) {
+    override fun showAnalysisResult(result: Bitmap?) {
         runOnUiThread {
-//            binding.ivImage.text = result
             binding.ivImage.setImageBitmap(result)
         }
     }

@@ -24,9 +24,6 @@ import androidx.fragment.app.Fragment
 import androidx.viewbinding.ViewBinding
 import androidx.window.WindowManager
 import com.googlecode.tesseract.android.TessBaseAPI
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import timber.log.Timber
 import java.io.File
 import java.text.SimpleDateFormat
@@ -315,12 +312,6 @@ abstract class CameraXFragment<VIEW: ViewBinding> : Fragment() {
                         imageRotationDegrees = image.imageInfo.rotationDegrees
                         bitmapBuffer = Bitmap.createBitmap(image.width, image.height, Bitmap.Config.ARGB_8888)
                     }
-
-//                    if (isStopAnalysis) {
-//                        image.close()
-//                    }
-                    // image width: 640, height: 480, rotation: 90
-                    // image width: 480, height: 640, rotation: 90
 //                    Timber.d("ImageAnalysis: image width: ${image.width}, height: ${image.height}, rotation: ${image.imageInfo.rotationDegrees}")
 
                     image.use { bitmapBuffer.copyPixelsFromBuffer(image.planes[0].buffer) }
@@ -344,6 +335,9 @@ abstract class CameraXFragment<VIEW: ViewBinding> : Fragment() {
                             val text: String = tess.utF8Text
                             listener?.showAnalysisText(text)
                             listener?.showAnalysisResult(result)
+                        } else {
+                            listener?.showAnalysisText("")
+                            listener?.showAnalysisResult(null)
                         }
                     } catch (e: Exception) {
                         e.printStackTrace()
@@ -556,7 +550,7 @@ abstract class CameraXFragment<VIEW: ViewBinding> : Fragment() {
     }
 
     interface OnFragmentActionListener {
-        fun showAnalysisResult(result: Bitmap)
+        fun showAnalysisResult(result: Bitmap?)
         fun showAnalysisText(txt: String)
     }
 
