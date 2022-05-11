@@ -26,7 +26,7 @@ class TextOcrResult {
     override fun toString(): String {
         val sb = StringBuilder()
         result?.forEach { r ->
-            sb.append(r.text).append("\n")
+            sb.append(r.text)
         }
         return sb.toString()
     }

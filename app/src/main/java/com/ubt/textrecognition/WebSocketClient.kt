@@ -34,7 +34,7 @@ class WebSocketClient(
                         when (frame) {
                             is Frame.Text -> {
                                 val receivedText = frame.readText()
-                                Timber.d("receivedText: $receivedText")
+//                                Timber.d("receivedText: $receivedText")
                                 val r = try {
                                     Gson().fromJson<TextOcrResult>(receivedText, TextOcrResult::class.java)
                                 } catch (e: Exception) {

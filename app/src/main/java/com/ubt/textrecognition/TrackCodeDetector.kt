@@ -133,7 +133,7 @@ class TrackCodeDetector(private val context: Context) {
         Imgproc.cvtColor(srcMat, hsvMat, Imgproc.COLOR_BGR2HSV)
         val binaryMat = Mat()
         // 行程码绿色值过滤
-        Core.inRange(hsvMat, Scalar(35.0, 60.0, 60.0), Scalar(80.0, 255.0, 255.0), binaryMat)
+        Core.inRange(hsvMat, Scalar(35.0, 60.0, 60.0), Scalar(85.0, 255.0, 255.0), binaryMat)
 
         // 寻找轮廓
         val hierarchy = Mat()

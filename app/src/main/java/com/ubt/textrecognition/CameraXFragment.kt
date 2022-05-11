@@ -9,6 +9,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
+import android.util.Base64
 import android.util.Log
 import android.util.Size
 import android.view.*
@@ -24,7 +25,12 @@ import androidx.fragment.app.Fragment
 import androidx.viewbinding.ViewBinding
 import androidx.window.WindowManager
 import com.googlecode.tesseract.android.TessBaseAPI
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import timber.log.Timber
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
@@ -67,10 +73,14 @@ abstract class CameraXFragment<VIEW: ViewBinding> : Fragment() {
     private var listener: OnFragmentActionListener? = null
 
     // 图像分析
-    private var tess = TessBaseAPI()
+//    private var tess = TessBaseAPI()
     private var isStopAnalysis = false
     private val trackCodeDetector: TrackCodeDetector by lazy {
         TrackCodeDetector(requireContext())
+    }
+    private val webSocketClient = WebSocketClient { r ->
+//        binding.tvResult.text = r.toString()
+        listener?.showAnalysisText(r.toString())
     }
 
     override fun onAttach(context: Context) {
@@ -89,7 +99,8 @@ abstract class CameraXFragment<VIEW: ViewBinding> : Fragment() {
 
     override fun onDestroy() {
 
-        tess.recycle()
+        webSocketClient.stop()
+//        tess.recycle()
         isStopAnalysis = true
         super.onDestroy()
     }
@@ -129,14 +140,15 @@ abstract class CameraXFragment<VIEW: ViewBinding> : Fragment() {
             surfaceTexture.setDefaultBufferSize(getSurfaceView().width, getSurfaceView().height)
             Timber.d("纹理缓冲区尺寸：${getSurfaceView().width} x ${getSurfaceView().height}")
             displayId = getSurfaceView().display.displayId
+            webSocketClient.start {  }
             setupCamera()
         }
 
         // 文字模型路径/sdcard/tesseract/tessdata/
-        val dataPath: String = File(Environment.getExternalStorageDirectory(), "tesseract").absolutePath
-        if (tess.init(dataPath, "chi_sim")) {
-            Timber.d("Tesseract引擎初始化成功")
-        }
+//        val dataPath: String = File(Environment.getExternalStorageDirectory(), "tesseract").absolutePath
+//        if (tess.init(dataPath, "chi_sim")) {
+//            Timber.d("Tesseract引擎初始化成功")
+//        }
 
         // 手动对焦
 //        getSurfaceView().setOnGestureDetect(object : GestureDetector.SimpleOnGestureListener() {
@@ -324,17 +336,21 @@ abstract class CameraXFragment<VIEW: ViewBinding> : Fragment() {
                         stopAnalysis()
                         return@Analyzer
                     }
+
                     try {
                         val result = trackCodeDetector.detect(bitmap)
                         if (result != null) {
-                            tess.setImage(result)
+//                            tess.setImage(result)
                             // 上面是一个耗时方法，不能直接把线程关掉，等他处理完再关掉
                             if (isStopAnalysis) {
                                 stopAnalysis()
                             }
-                            val text: String = tess.utF8Text
-                            listener?.showAnalysisText(text)
-                            listener?.showAnalysisResult(result)
+//                            val text: String = tess.utF8Text
+//                            listener?.showAnalysisText(text)
+                            CoroutineScope(Dispatchers.IO).launch {
+                                webSocketClient.send(encodeImage(result))
+                                listener?.showAnalysisResult(result)
+                            }
                         } else {
                             listener?.showAnalysisText("")
                             listener?.showAnalysisResult(null)
@@ -369,6 +385,13 @@ abstract class CameraXFragment<VIEW: ViewBinding> : Fragment() {
         } catch (exc: Exception) {
             Timber.e("Use case binding failed: $exc")
         }
+    }
+
+    private fun encodeImage(bm: Bitmap): String? {
+        val baos = ByteArrayOutputStream()
+        bm.compress(Bitmap.CompressFormat.JPEG, 100, baos)
+        val b = baos.toByteArray()
+        return Base64.encodeToString(b, Base64.DEFAULT)
     }
 
     private fun aspectRatio(width: Int, height: Int): Int {

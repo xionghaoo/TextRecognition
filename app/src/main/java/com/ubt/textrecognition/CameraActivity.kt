@@ -92,7 +92,8 @@ class CameraActivity : AppCompatActivity(), CameraXFragment.OnFragmentActionList
 
     override fun showAnalysisText(txt: String) {
         runOnUiThread {
-            if (txt.contains("*")) {
+            Timber.d(txt)
+            if (txt.matches("^.*[\\*].+[中].*[高].*[风险].*$".toRegex())) {
                 Timber.d("发现星号")
                 ToastUtil.show(this, "发现星号")
             }
