@@ -25,11 +25,9 @@ import androidx.fragment.app.Fragment
 import androidx.viewbinding.ViewBinding
 import androidx.window.WindowManager
 import com.googlecode.tesseract.android.TessBaseAPI
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.*
 import timber.log.Timber
+import xh.zero.core.utils.ToastUtil
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.text.SimpleDateFormat
@@ -79,9 +77,9 @@ abstract class CameraXFragment<VIEW: ViewBinding> : Fragment() {
         TrackCodeDetector(requireContext())
     }
     private val webSocketClient = WebSocketClient { r ->
-//        binding.tvResult.text = r.toString()
         listener?.showAnalysisText(r.toString())
     }
+    private var lastUploadTime = 0L
 
     override fun onAttach(context: Context) {
         super.onAttach(context)
@@ -140,7 +138,15 @@ abstract class CameraXFragment<VIEW: ViewBinding> : Fragment() {
             surfaceTexture.setDefaultBufferSize(getSurfaceView().width, getSurfaceView().height)
             Timber.d("纹理缓冲区尺寸：${getSurfaceView().width} x ${getSurfaceView().height}")
             displayId = getSurfaceView().display.displayId
-            webSocketClient.start {  }
+            webSocketClient.start(
+                success = {
+
+                },
+                failure = { e ->
+                    Timber.d("启动WebSocket失败")
+                    ToastUtil.show(requireContext(), "启动WebSocket失败: $e")
+                }
+            )
             setupCamera()
         }
 
@@ -347,9 +353,13 @@ abstract class CameraXFragment<VIEW: ViewBinding> : Fragment() {
                             }
 //                            val text: String = tess.utF8Text
 //                            listener?.showAnalysisText(text)
-                            CoroutineScope(Dispatchers.IO).launch {
-                                webSocketClient.send(encodeImage(result))
-                                listener?.showAnalysisResult(result)
+                            val t = System.currentTimeMillis()
+                            if (t - lastUploadTime > 500) {
+                                CoroutineScope(Dispatchers.IO).launch {
+                                    webSocketClient.send(encodeImage(result))
+                                    listener?.showAnalysisResult(result)
+                                    lastUploadTime = t
+                                }
                             }
                         } else {
                             listener?.showAnalysisText("")
@@ -381,7 +391,7 @@ abstract class CameraXFragment<VIEW: ViewBinding> : Fragment() {
                     Timber.d("surface used result: ${result.resultCode}")
                 }
             }
-            observeCameraState(camera?.cameraInfo!!)
+//            observeCameraState(camera?.cameraInfo!!)
         } catch (exc: Exception) {
             Timber.e("Use case binding failed: $exc")
         }

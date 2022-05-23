@@ -62,9 +62,14 @@ class ImageTestActivity : AppCompatActivity() {
             recognize(img)
         }
 
-        webSocketClient.start {
-            recognize(testImg)
-        }
+        webSocketClient.start(
+            success = {
+                recognize(testImg)
+            },
+            failure = { e ->
+
+            }
+        )
     }
 
 //    private fun recognize(img: Int) {

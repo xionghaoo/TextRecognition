@@ -20,7 +20,7 @@ class WebSocketClient(
 
     private var session: ClientWebSocketSession? = null
 
-    fun start(success: () -> Unit) {
+    fun start(success: () -> Unit, failure: (e: String?) -> Unit) {
         CoroutineScope(Dispatchers.Default).launch {
             kotlin.runCatching {
                 Timber.d("启动websocket服务")
@@ -61,6 +61,9 @@ class WebSocketClient(
             }.onFailure { e ->
                 Timber.d("启动websocket服务失败")
                 Timber.e(e)
+                withContext(Dispatchers.Main) {
+                    failure(e.localizedMessage)
+                }
             }
         }
     }
