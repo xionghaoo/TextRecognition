@@ -143,7 +143,6 @@ abstract class CameraXFragment<VIEW: ViewBinding> : Fragment() {
 
                 },
                 failure = { e ->
-                    Timber.d("启动WebSocket失败")
                     ToastUtil.show(requireContext(), "启动WebSocket失败: $e")
                 }
             )

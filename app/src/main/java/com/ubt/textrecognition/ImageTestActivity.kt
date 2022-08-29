@@ -14,6 +14,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import timber.log.Timber
 import xh.zero.core.utils.SystemUtil
+import xh.zero.core.utils.ToastUtil
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.lang.Exception
@@ -67,7 +68,7 @@ class ImageTestActivity : AppCompatActivity() {
                 recognize(testImg)
             },
             failure = { e ->
-
+                ToastUtil.show(this, "启动WebSocket失败: $e")
             }
         )
     }
